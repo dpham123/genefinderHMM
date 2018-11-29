@@ -5,25 +5,33 @@
  */
 package genefinderhmm;
 
+import java.util.HashMap;
+
 /**
  *
  * @author Unknown
  */
 class State {
-    private String stateName;
-    private String[] stateEmissions;
-    private int[] stateEmissionProbabilities;
+    private final String stateName;
+    private HashMap<String, Double> stateEmissions; 
     
     State(String[] parsedState){
         stateName = parsedState[0];
-        stateEmissions = parsedState[1].split(",");
+        stateEmissions = new HashMap<>();
         
-        String[] parsedEmissions = parsedState[2].split(",");
+        String[] parsedEmissions = parsedState[1].split(",");
+        String[] parsedEmissionProbabilities = parsedState[2].split(",");
         
-        int counter = 0;
-        for (String s : parsedEmissions){
-            stateEmissionProbabilities[counter] = Integer.parseInt(s);
-            counter++;
+        for (int i = 0 ; i < parsedEmissions.length; i++){
+            stateEmissions.put(parsedEmissions[i], Double.parseDouble(parsedEmissionProbabilities[i]));
         }
+    }
+    
+    double getEmissionProbability(String s){
+        return stateEmissions.get(s);
+    }
+    
+    String getName(){
+        return stateName;
     }
 }
