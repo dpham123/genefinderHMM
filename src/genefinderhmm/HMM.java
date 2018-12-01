@@ -20,10 +20,14 @@ import java.util.logging.Logger;
  */
 class HMM {
     private Set<State> states;
+    private String sequence;
     private double[][] transitionProbabilities;
+    private double[][] dynamicTable;
     
     HMM(File states, File transitions, File sequence) throws IOException{
+        this.sequence = "";
         parseFile(states, transitions, sequence);
+        dynamicTable = new double[this.states.size()][this.sequence.length()];
     }
     
     private void parseFile(File states_fileName, File transitions_fileName, File sequence_fileName) throws IOException{
@@ -58,6 +62,17 @@ class HMM {
             counter++;
         }
         
+        fr = new FileReader(sequence_fileName);
+        br = new BufferedReader(fr);
+        line = br.readLine();
+        line = br.readLine();
+        
+        // Parses observations file
+        while (line != null){
+            sequence += line;
+            line = br.readLine();
+        }
+        
         for (int i = 0; i < transitionProbabilities.length; i++){
             for (int j = 0; j < transitionProbabilities[0].length; j++){
                 System.out.print(transitionProbabilities[i][j] + " ");
@@ -67,9 +82,18 @@ class HMM {
         
     }
     
+    void viterbi(){
+        
+        for (int i = 1; i < sequence.length(); i++){
+            
+        }
+    }
+    
     public static void main(String[] args){
         try {
-            HMM test = new HMM(new File("data/language_states.txt"), new File("data/coin_transitions.txt"), null);
+            HMM test = new HMM(new File("data/Ecoli_states.txt"), 
+                    new File("data/Ecoli_transitions.txt"), new File("data/Ecoli_observation_290.txt"));
+            
         } catch (IOException ex) {
             Logger.getLogger(HMM.class.getName()).log(Level.SEVERE, null, ex);
         }

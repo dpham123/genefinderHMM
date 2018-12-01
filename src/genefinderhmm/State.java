@@ -28,7 +28,10 @@ class State {
     }
     
     double getEmissionProbability(String s){
-        return stateEmissions.get(s);
+        if (stateEmissions.containsKey(s)){
+            return stateEmissions.get(s);
+        } 
+        return 0;
     }
     
     String getName(){
