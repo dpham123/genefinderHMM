@@ -109,12 +109,18 @@ class HMM {
         for (int i = 1; i < sequence.length(); i++) {
             for (int j = 0; j < states.length; j++) {
                 for (int k = 0; k < states.length; k++) {
-                    singleStateMax[k] = dynamicTable[j][i - 1] + Math.log10(transitionProbabilities[k + 1][j + 1]);
-                    System.out.println(dynamicTable[j][i - 1]);
+                    if ((states[j].getName().equals("Codons") || states[j].getName().equals("StopCodons")) && i - 3 >= 0){
+                        singleStateMax[k] = dynamicTable[k][i - 3] + Math.log10(transitionProbabilities[k + 1][j + 1]);
+                    } else if (states[j].getName().equals(".Intergenic") || states[j].getName().equals("StartCodons")){
+                        singleStateMax[k] = dynamicTable[k][i - 1] + Math.log10(transitionProbabilities[k + 1][j + 1]);
+                    } else {
+                        singleStateMax[k] = Math.log10(0);
+                    }
+                    
 
-                    if (!states[k].getName().equals(".Intergenic") && i + 2 < sequence.length()) {
+                    if (!states[j].getName().equals(".Intergenic") && i + 2 < sequence.length()) {
                         singleStateMax[k] += Math.log10(states[j].getEmissionProbability(sequence.substring(i, i + 3)));
-                    } else if (states[k].getName().equals(".Intergenic")){
+                    } else if (states[j].getName().equals(".Intergenic")){
                         singleStateMax[k] += Math.log10(states[j].getEmissionProbability(sequence.substring(i, i + 1)));
                     }
                 }
@@ -135,7 +141,7 @@ class HMM {
     public static void main(String[] args) {
         try {
             HMM test = new HMM(new File("data/Ecoli_states.txt"),
-                    new File("data/Ecoli_transitions.txt"), new File("data/test_observation.txt"));
+                    new File("data/Ecoli_transitions.txt"), new File("data/E_coli_observation_290.txt"));
             test.viterbi();
 
         } catch (IOException ex) {
