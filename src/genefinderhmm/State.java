@@ -13,11 +13,13 @@ import java.util.HashMap;
  */
 class State {
     private final String stateName;
+    private int index;
     private HashMap<String, Double> stateEmissions; 
     
-    State(String[] parsedState){
+    State(String[] parsedState, int index){
         stateName = parsedState[0];
         stateEmissions = new HashMap<>();
+        this.index = index;
         
         String[] parsedEmissions = parsedState[1].split(",");
         String[] parsedEmissionProbabilities = parsedState[2].split(",");
@@ -25,6 +27,15 @@ class State {
         for (int i = 0 ; i < parsedEmissions.length; i++){
             stateEmissions.put(parsedEmissions[i], Double.parseDouble(parsedEmissionProbabilities[i]));
         }
+    }
+    
+    State(String name){
+        stateName = name;
+        index = -1;
+    }
+    
+    int getIndex(){
+        return index;
     }
     
     double getEmissionProbability(String s){
@@ -35,6 +46,9 @@ class State {
     }
     
     String getName(){
+        if (stateName == null){
+            return "N";
+        }
         return stateName;
     }
 }
