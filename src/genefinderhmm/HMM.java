@@ -24,12 +24,14 @@ class HMM {
     private double[][] transitionProbabilities;
     private double[][] dynamicTable;
     private State[][] backtrackTable;
+    private String optimalAnnotation;
 
     HMM(File states, File transitions, File sequence) throws IOException {
         this.sequence = "";
         parseFile(states, transitions, sequence);
         dynamicTable = new double[this.states.length][this.sequence.length()];
         backtrackTable = new State[this.states.length][this.sequence.length()];
+        optimalAnnotation = "";
     }
 
     private void parseFile(File states_fileName, File transitions_fileName, File sequence_fileName) throws IOException {
@@ -84,6 +86,9 @@ class HMM {
         backtrackTable[row][column] = states[(int) probability[1]];
     }
 
+    /**
+     * Fills first column with initial probabilities and states
+     */
     private void fillInitialColumn() {
         dynamicTable[0][0] = Math.log10(states[0].getEmissionProbability(sequence.substring(0, 1)));
         dynamicTable[1][0] = Math.log10(0);
@@ -101,6 +106,51 @@ class HMM {
         return backtrackTable;
     }
 
+    double[][] getDynamicTable() {
+        return dynamicTable;
+    }
+    
+    void determineOptimalAnnotation(){
+        int[] hiddenStates = findStates();
+        char[] annotation = new char[hiddenStates.length];
+        
+        for (int i = 0; i < hiddenStates.length; i++){
+            switch (hiddenStates[i]){
+                case 0: annotation[i] = '.';
+                        break;
+                case 1: annotation[i] = 'S';
+                        annotation[i - 1] = 'S';
+                        annotation[i - 2] = 'S';
+                        break;
+                case 2: annotation[i] = 'S';
+                        annotation[i - 1] = 'S';
+                        annotation[i - 2] = 'S';
+                        break;
+                case 3: annotation[i] = 'C';
+                        annotation[i - 1] = 'C';
+                        annotation[i - 2] = 'C';
+                        break;
+            }
+        }
+        optimalAnnotation = new String(annotation);
+    }
+    
+    void printOptimalAnnotation(){
+        int lastStringLength = sequence.substring((sequence.length() / 60) * 60).length() + (sequence.length() / 60) * 60;
+        for (int i = 0; i < sequence.length() / 60; i++){
+            System.out.println(sequence.substring(60 * i, 60 * (i + 1)) + "	" + 60 * (i + 1));
+            System.out.println(optimalAnnotation.substring(60 * i + 1, 60 * (i + 1)));
+        }
+        System.out.println(sequence.substring((sequence.length() / 60) * 60) + "	" + lastStringLength);
+        System.out.println(optimalAnnotation.substring((optimalAnnotation.length() / 60) * 60 + 1) + ".");
+    }
+
+    /**
+     * Finds the maximum of the array of numbers
+     *
+     * @param numbers the numbers to find the max out of
+     * @return max An array with the max number along with its index
+     */
     private double[] max(double[] numbers) {
         double[] max = new double[2];
         max[0] = numbers[0];
@@ -128,21 +178,21 @@ class HMM {
                 for (int k = 0; k < states.length; k++) {
 
                     // Bases codon transition probability on previous codon probability, hence [i - 3]
-                    if ((states[k].getName().equals("Codons") || states[k].getName().equals("StopCodons")) && i - 3 >= 0) {
+                    if ((states[k].getName().equals("Codons") || states[k].getName().equals("StopCodons") || states[k].getName().equals("StartCodons")) && i - 3 >= 0) {
                         singleStateMax[k] = dynamicTable[k][i - 3] + Math.log10(transitionProbabilities[k + 1][j + 1]);
 
                     // Bases the "intergenic" and "start codon" transition probability on previous state
-                    } else if (states[k].getName().equals(".Intergenic") || states[k].getName().equals("StartCodons")) {
+                    } else if (states[k].getName().equals(".Intergenic")) {
                         singleStateMax[k] = dynamicTable[k][i - 1] + Math.log10(transitionProbabilities[k + 1][j + 1]);
                     } else {
                         singleStateMax[k] = Math.log10(0);
                     }
-
-                    // If intergenic, the state can only emit 1 character
+                    
+                    // If a codon, the state can only emit 3 characters
                     if (!states[j].getName().equals(".Intergenic") && i + 2 < sequence.length()) {
                         singleStateMax[k] += Math.log10(states[j].getEmissionProbability(sequence.substring(i, i + 3)));
 
-                    // If a codon, the state can only emit 3 characters
+                    // If intergenic, the state can only emit 1 character
                     } else if (states[j].getName().equals(".Intergenic")) {
                         singleStateMax[k] += Math.log10(states[j].getEmissionProbability(sequence.substring(i, i + 1)));
                     } else {
@@ -152,21 +202,13 @@ class HMM {
                 fillInTableEntry(j, i, max(singleStateMax));
             }
         }
-        System.out.println("Dynamic Table");
-        System.out.println("----------------------------------------------");
-        for (int i = 0; i < dynamicTable[0].length; i++) {
-            System.out.println(i);
-            System.out.println("-------------------");
-            for (int j = 0; j < dynamicTable.length; j++) {
-                System.out.println(dynamicTable[j][i] + " ");
-            }
-        }
     }
 
-    int[] findStates() {
+    private int[] findStates() {
         double max = Math.log10(0);
         int state = -1;
         int[] states = new int[dynamicTable[0].length];
+        
 
         for (int j = dynamicTable.length - 1; j > 0; j--) {
             if (dynamicTable[j][dynamicTable[0].length - 1] >= max) {
@@ -175,9 +217,14 @@ class HMM {
             }
         }
 
-        for (int i = backtrackTable[0].length - 1; i > 0; i--) {
+        for (int i = backtrackTable[0].length - 1; i > 0;) {
             states[i] = backtrackTable[state][i].getIndex();
             state = backtrackTable[state][i].getIndex();
+            if (state == 0){
+                i--;
+            } else {
+                i -= 3;
+            }
         }
         return states;
     }
@@ -185,24 +232,11 @@ class HMM {
     public static void main(String[] args) {
         try {
             HMM test = new HMM(new File("data/Ecoli_states.txt"),
-                    new File("data/Ecoli_transitions.txt"), new File("data/E_coli_observation_290.txt"));
+                    new File("data/Ecoli_transitions.txt"), new File("data/clostridium_botulinum.fasta"));
             test.viterbi();
-            int[] a = test.findStates();
+            test.determineOptimalAnnotation();
+            test.printOptimalAnnotation();
 
-            for (int i : a) {
-                System.out.print(i);
-            }
-
-            /*
-            State[][] backtrackTable = test.getBacktrackTable();
-            for (int i = 0; i < backtrackTable[0].length; i++) {
-                System.out.println(i);
-                System.out.println("-------------------");
-                for (int j = 0; j < backtrackTable.length; j++) {
-                    System.out.println(backtrackTable[j][i].getIndex() + " ");
-                }
-            }
-             */
         } catch (IOException ex) {
             Logger.getLogger(HMM.class.getName()).log(Level.SEVERE, null, ex);
         }
